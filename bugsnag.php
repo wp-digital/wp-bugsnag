@@ -64,7 +64,7 @@ if ( defined( 'BUGSNAG_FRONTEND_API_KEY' ) && ! is_admin() ) {
             parse_url( apply_filters( 'script_loader_src', get_template_directory_uri() . '/none.js' ), PHP_URL_HOST ), // cdn host
         ];
 
-        $notify_script_hosts = apply_filters( 'bugsnag_notify_script_hosts', array_unique( $notify_script_hosts ) );
+        $notify_script_hosts = apply_filters( 'bugsnag_notify_script_hosts', array_values( array_unique( $notify_script_hosts ) ) );
         $escaped_hosts = json_encode( $notify_script_hosts );
 
         echo "<script type=\"text/javascript\">\n";
