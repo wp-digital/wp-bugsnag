@@ -17,7 +17,7 @@ if ( defined( 'BUGSNAG_API_KEY' ) ) {
     /**
      * @var Bugsnag\Client $bugsnag
      */
-    $bugsnag = new \Bugsnag\Client( BUGSNAG_API_KEY );
+    $bugsnag = \Bugsnag\Client::make( BUGSNAG_API_KEY );
     \Bugsnag\Handler::register( $bugsnag );
 
     $bugsnag_error_level = E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED & ~E_USER_DEPRECATED;
