@@ -14,14 +14,36 @@ if ( defined( 'BUGSNAG_API_KEY' ) ) {
 
     require_once __DIR__ . '/vendor/autoload.php';
 
-    $bugsnag = new Bugsnag_Client( BUGSNAG_API_KEY );
-    $bugsnag->setErrorReportingLevel( E_ERROR | E_PARSE );
+    /**
+     * @var Bugsnag\Client $bugsnag
+     */
+    $bugsnag = Bugsnag\Handler::register( BUGSNAG_API_KEY );
 
-    set_error_handler( [ $bugsnag, 'errorHandler' ] );
-    set_exception_handler( [ $bugsnag, 'exceptionHandler' ] );
+    $bugsnag_error_level = E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED & ~E_USER_DEPRECATED;
+    $bugsnag->getConfig()->setErrorReportingLevel( $bugsnag_error_level );
+
+    $bugsnag->registerCallback( function ( $report ) {
+
+        if ( function_exists( 'wp_get_current_user' ) ) {
+            $user = wp_get_current_user();
+
+            if ( ! empty( $user ) && $user->ID > 0 ) {
+                $report->setUser( [
+                    'id' => $user->ID,
+                    'name' => $user->get( 'display_name' ),
+                    'email' => $user->get( 'user_email' ),
+                ] );
+            }
+        }
+
+    } );
 
     add_action( 'bugsnag_notify', function( $name, $message ) use ( $bugsnag ) {
         $bugsnag->notifyError( $name, $message );
+    }, 1, 2 );
+
+    add_action( 'bugsnag_notify_exception', function( $e ) use ( $bugsnag ) {
+        $bugsnag->notifyException( $e );
     }, 1, 2 );
 
 }
@@ -29,19 +51,38 @@ if ( defined( 'BUGSNAG_API_KEY' ) ) {
 
 if ( defined( 'BUGSNAG_FRONTEND_API_KEY' ) && ! is_admin() ) {
 
-    add_action( 'wp_enqueue_scripts', function() {
+    add_action( 'wp_head', function() {
 
-        wp_enqueue_script( 'bugsnag', '//d2wy8f7a9ursnm.cloudfront.net/bugsnag-3.min.js' );
+        echo "<script src='//d2wy8f7a9ursnm.cloudfront.net/bugsnag-3.min.js' async onload='bugsnagLoaded()'></script>";
 
-    }, -1 );
+        $escaped_key = json_encode( BUGSNAG_FRONTEND_API_KEY );
 
-    add_filter( 'script_loader_tag', function( $tag, $handle ) {
+        // track only local scripts
+        $notify_script_hosts = [
+            $_SERVER['HTTP_HOST'], // current host
+            parse_url( get_home_url(), PHP_URL_HOST ), // site host
+            parse_url( apply_filters( 'script_loader_src', get_template_directory_uri() . '/none.js' ), PHP_URL_HOST ), // cdn host
+        ];
 
-        if( 'bugsnag' == $handle ) {
-            $tag = str_replace( 'src=', sprintf( "data-apikey='%s' src=", esc_attr( BUGSNAG_FRONTEND_API_KEY ) ), $tag );
-        }
+        $notify_script_hosts = apply_filters( 'bugsnag_notify_script_hosts', array_unique( $notify_script_hosts ) );
+        $escaped_hosts = json_encode( $notify_script_hosts );
 
-        return $tag;
-    }, 5, 2 );
+        echo "<script type=\"text/javascript\">\n";
+        echo "\n
+            (function(w) {
+                w.bugsnagLoaded = function() {
+                    var hosts = $escaped_hosts || [];
+                    hosts.push(w.location.host);
+                    w.Bugsnag.apiKey = $escaped_key;
+                    w.Bugsnag.beforeNotify = function(payload) {
+                        for (var i = 0; i < hosts.length; i++)
+                            if (payload.file.indexOf(hosts[i]) != -1) return true;
+                        return false;
+                    };
+                }
+            })(window);";
+        echo "\n</script>";
+
+    }, 5 );
 
 }

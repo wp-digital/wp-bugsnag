@@ -13,7 +13,7 @@
     "minimum-stability": "dev",
     "require": {
         "php": ">=5.5.0",
-        "bugsnag/bugsnag": "2.*"
+        "bugsnag/bugsnag": "3.*"
     },
     "extra": {
         "installer-name": "bugsnag"
