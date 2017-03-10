@@ -10,10 +10,10 @@
             "email": "alex@strikha.com"
         }
     ],
-    "minimum-stability": "dev",
     "require": {
         "php": ">=5.5.0",
-        "bugsnag/bugsnag": "3.*"
+        "bugsnag/bugsnag": "3.*",
+        "guzzlehttp/guzzle": "5.3"
     },
     "extra": {
         "installer-name": "bugsnag"
