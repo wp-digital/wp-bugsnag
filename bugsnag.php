@@ -75,8 +75,11 @@ if ( defined( 'BUGSNAG_FRONTEND_API_KEY' ) && ! is_admin() ) {
                     hosts.push(w.location.host);
                     w.Bugsnag.apiKey = $escaped_key;
                     w.Bugsnag.beforeNotify = function(payload) {
-                        for (var i = 0; i < hosts.length; i++)
-                            if (payload.file.indexOf(hosts[i]) != -1) return true;
+                        if (!!payload && !!payload.file) {
+                            for (var i = 0; i < hosts.length; i++) {
+                                if (payload.file.indexOf(hosts[i]) != -1) return true;
+                            }
+                        }
                         return false;
                     };
                 }
